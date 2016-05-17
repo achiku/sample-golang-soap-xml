@@ -1,2 +1,2 @@
-# golang-sample-soap-xml
+# sample-golang-soap-xml
 Golang SOAP examples
