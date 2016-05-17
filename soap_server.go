@@ -1,11 +1,24 @@
 package gosoap
 
 import (
-	"log"
+	"io/ioutil"
 	"net/http"
+	"regexp"
 
 	"github.com/achiku/xml"
 )
+
+// ProcessBRequest struct
+type ProcessBRequest struct {
+	XMLName   xml.Name `xml:"http://example.com/ns ProcessBRequest"`
+	RequestID string   `xml:"RequestId"`
+}
+
+// ProcessARequest struct
+type ProcessARequest struct {
+	XMLName   xml.Name `xml:"http://example.com/ns ProcessARequest"`
+	RequestID string   `xml:"RequestId"`
+}
 
 // ProcessAResponse struct
 type ProcessAResponse struct {
@@ -63,9 +76,8 @@ func soapActionHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/xml")
+	w.Header().Set("Content-Type", "text/xml")
 	x, err := xml.MarshalIndent(v, "", "  ")
-	log.Printf("Response:\n%s", x)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -75,6 +87,36 @@ func soapActionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func soapBodyHandler(w http.ResponseWriter, r *http.Request) {
+	rawbody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	a := regexp.MustCompile(`<ProcessARequest xmlns="http://example.com/ns">`)
+	b := regexp.MustCompile(`<ProcessBRequest xmlns="http://example.com/ns">`)
+
+	var res interface{}
+	if a.MatchString(string(rawbody)) {
+		res = processA()
+	} else if b.MatchString(string(rawbody)) {
+		res = processB()
+	} else {
+		res = nil
+	}
+	v := SOAPEnvelope{
+		Body: SOAPBody{
+			Content: res,
+		},
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/xml")
+	x, err := xml.MarshalIndent(v, "", "  ")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(x)
 	return
 }
 
