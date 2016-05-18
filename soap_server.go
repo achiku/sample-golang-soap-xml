@@ -63,11 +63,12 @@ func processB() ProcessBResponse {
 func soapActionHandler(w http.ResponseWriter, r *http.Request) {
 	soapAction := r.Header.Get("soapAction")
 	var res interface{}
-	if soapAction == "processA" {
+	switch soapAction {
+	case "processA":
 		res = processA()
-	} else if soapAction == "processB" {
+	case "processB":
 		res = processB()
-	} else {
+	default:
 		res = nil
 	}
 	v := SOAPEnvelope{
